@@ -7,6 +7,9 @@ Algorithms:
   * HTCP
   * Vegas
 
+Make sure to install the python3-matplotlib package before running: 
+`sudo apt-get install python3-matplotlib`
+
 Run the following before running any tests to ensure no other processes are running in mininet:
 `sudo mn -c`
 
