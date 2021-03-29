@@ -139,7 +139,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	print('Starting iperf client h2')
 	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 1750 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
 
-	time.sleep(2010)
+	time.sleep(1760)
 	
 	popens[h1].wait()
 	popens[h2].wait()
