@@ -243,9 +243,9 @@ def plot_iperf(algorithm, delay, cwnd):
 
 		plot1.stdin.write("set xrange[1:1000]\n")
 		plot1.stdin.write("set xtics 1,1,1000\n")
-		plot1.stdin.write("set title \"Change in Throughput (Gbps) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
+		plot1.stdin.write("set title \"Change in Throughput (Mbps) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
 		plot1.stdin.write("set xlabel \"Time (seconds)\"\n")
-		plot1.stdin.write("set ylabel \"Throughput (Gbps)\"\n")
+		plot1.stdin.write("set ylabel \"Throughput (Mbps)\"\n")
 		plot1.stdin.write("set terminal png\n")
 		plot1.stdin.write("set output \"{0}_{1}_fair.png\"\n".format(algorithm, delay))
 		plot1.stdin.write("replot\n")
