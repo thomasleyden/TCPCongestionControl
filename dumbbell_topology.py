@@ -72,8 +72,9 @@ class Dumbbell_Topology(Topo):
 		self.addLink(h4, s4, bw=960, delay='0ms')
 
 	
-def run_tests():
-	topo = Dumbbell_Topology(delay=21)
+def run_tests(delay):
+	print("DELAY {0}".format(delay))
+	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
 	net.start()
 	
@@ -110,7 +111,11 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
 	net.start()
-	#CLI(net)
+	
+	print("Dumping host connections")
+	dumpNodeConnections(net.hosts)
+	
+	CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -124,19 +129,19 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -1 &', shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -1 &', shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 200 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
-	print('200 delay for client h2')
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t 200 -C {1} -i 1 > cwnd_{2}_{3}_{4} &'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
+	print('40 delay for client h2')
 	for i in range(40,0,-1):
 		time.sleep(1)
 		print(i)
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 160 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t 160 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
 
 	print("Waiting for clients to finish...")
 	
@@ -163,7 +168,10 @@ def run_tcp_tests_fairness(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo)
 	net.start()
-	#CLI(net)
+	
+	print("Dumping host connections")
+	dumpNodeConnections(net.hosts)
+	CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -177,13 +185,13 @@ def run_tcp_tests_fairness(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2}'.format(algorithm, h3, delay), shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2} &'.format(algorithm, h3, delay), shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2}'.format(algorithm, h4, delay), shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2} &'.format(algorithm, h4, delay), shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 100 -C {1}'.format(h3.IP(), algorithm), shell=True)
+	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 100 -C {1} &'.format(h3.IP(), algorithm), shell=True)
 	print('Starting iperf client h2')
 	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 100 -C {1}'.format(h4.IP(), algorithm), shell=True)
 	
@@ -270,13 +278,24 @@ if __name__ == '__main__':
 	
 	setLogLevel('info')
 	
-	#run_tests()
+	#for y in delay:
+	#	run_tests(y)
+	
+	print("Cleaning mininet")
+	p3 = subprocess.Popen("sudo mn -c", shell=True)
+	p3.communicate()
 	
 	for x in algorithm:
 		for y in delay:
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
+			print("Cleaning mininet")
+			p1 = subprocess.Popen("sudo mn -c", shell=True)
+			p1.communicate()
 			print("TCP Fairness for {0} {1}".format(x, y))
 			run_tcp_tests_fairness(x, y)
+			print("Cleaning mininet")
+			p2 = subprocess.Popen("sudo mn -c", shell=True)
+			p2.communicate()
 	
 
