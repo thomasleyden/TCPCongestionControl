@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 
-"""
-Create a network where different switches are connected to
-different controllers, by creating a custom Switch() subclass.
-"""
-
 from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.node import Node
