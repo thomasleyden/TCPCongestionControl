@@ -4,7 +4,7 @@ TCP Congestion Control algorithms with mininet
 Algorithms:
   * Reno
   * Cubic
-  * HTCP
+  * Westwood
   * Vegas
 
 Make sure to install the iperf3 package before running: 
