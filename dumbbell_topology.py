@@ -128,13 +128,13 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 2000 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
-	print('250 delay for client h2')
-	for i in range(250,0,-1):
+	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 1904 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
+	print('238 delay for client h2')
+	for i in range(238,0,-1):
 		time.sleep(1)
 		print(i)
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 1750 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
+	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 1666 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
 
 	print("Waiting for clients to finish...")
 	
