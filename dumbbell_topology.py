@@ -6,6 +6,7 @@ from mininet.node import Node
 from mininet.log import setLogLevel, info
 from mininet.link import TCLink
 from mininet.util import quietRun, dumpNodeConnections
+from mininet.cli import CLI
 import os
 import subprocess
 import time
@@ -16,7 +17,7 @@ class Dumbbell_Topology(Topo):
 
 	def build(self, delay=2):
 		""" 
-		For all calculations, we assume a 12000 bits/packet and 1500-byte packets
+		For all calculations, we assume 12000 bits/packet and 1500-byte packets
 		"""
 
 		# Backbone Router 1
@@ -30,7 +31,7 @@ class Dumbbell_Topology(Topo):
 		
 		"""
 		The backbone routers can transmit at 984Mbps (82p/ms).
-		Bandwidth of 984Mbps and a max queue size of 100% * bandwidth * delay.
+		Bandwidth of 984Mbps.
 		"""
 		# Bandwidth is in Mbps, delay is in ms, and max queue size is in packets
 		# Connect Backbone Router 1 to Backbone Router 2
@@ -58,7 +59,7 @@ class Dumbbell_Topology(Topo):
 		
 		"""
 		The hosts can transmit/receive at 960Mbps (80p/ms).
-		Bandwidth of 0ms and a max queue size of 100% * bandwidth * delay.
+		Delay of 0ms.
 		"""
 		# Bandwidth is in Mbps, delay is in ms, and max queue size is in packets
 		# Connect Source 1 to Access Router 1
@@ -109,6 +110,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
 	net.start()
+	#CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -161,6 +163,7 @@ def run_tcp_tests_fairness(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo)
 	net.start()
+	#CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -186,8 +189,14 @@ def run_tcp_tests_fairness(algorithm, delay):
 	
 	print("Waiting for clients to finish...")
 		
-	popens[h1].communicate()
-	popens[h2].communicate()
+	try:
+		popens[h1].communicate(timeout=100)
+	except subprocess.TimeoutExpired as e:
+		popens[h1].kill()
+	try:
+		popens[h2].communicate(timeout=100)
+	except subprocess.TimeoutExpired as e:
+		popens[h2].kill()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -207,8 +216,8 @@ def gather_data(algorithm, delay, cwnd):
 		if (path.exists("{0}_h2_{1}_cwnd_new".format(algorithm, delay))):
 			os.remove("{0}_h2_{1}_cwnd_new".format(algorithm, delay))
 		print("Creating the files for IPERF to plot the CWND graph")
-		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{ if ($12 == \"KBytes\")print $4, int($11)/(8000*12000); else if ($12 == \"MBytes\")print $4, int($11)/(8000000*12000); else print $4, int($11)/(8*12000);}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
-		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{ if ($12 == \"KBytes\")print $4+40, int($11)/(8000*12000); else if ($12 == \"MBytes\")print $4, int($11)/(8000000*12000); else print $4+40, int($11)/(8*12000);}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{print $4, int($11)/(1500)}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{print $4+40, int($11)/(1500)}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
 	else:
 		if (path.exists("{0}_h3_{1}_fair_new".format(algorithm, delay))):
@@ -263,10 +272,13 @@ if __name__ == '__main__':
 	
 	#run_tests()
 	
-	for x in algorithm:
-		for y in delay:
-			print("CWND for {0} {1}".format(x, y))
-			run_tcp_tests_cwnd(x, y)
-			print("TCP Fairness for {0} {1}".format(x, y))
-			run_tcp_tests_fairness(x, y)
+	#for x in algorithm:
+		#for y in delay:
+			#print("CWND for {0} {1}".format(x, y))
+			#run_tcp_tests_cwnd(x, y)
+			#print("TCP Fairness for {0} {1}".format(x, y))
+			#run_tcp_tests_fairness(x, y)
+	print("CWND for {0} {1}".format(algorithm[0], delay[0]))
+	run_tcp_tests_cwnd(algorithm[0], delay[0])
+	
 
