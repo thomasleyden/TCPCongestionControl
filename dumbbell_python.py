@@ -254,7 +254,7 @@ def plot_iperf(algorithm, delay, cwnd):
 	
 if __name__ == '__main__':
 	delay = [21, 81, 162]
-	algorithm = ['reno', 'cubic', 'htcp', 'vegas']
+	algorithm = ['reno', 'cubic', 'westwood', 'vegas']
 	
 	setLogLevel('info')
 	
