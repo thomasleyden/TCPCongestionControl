@@ -216,8 +216,8 @@ def gather_data(algorithm, delay, cwnd):
 		if (path.exists("{0}_h2_{1}_cwnd_new".format(algorithm, delay))):
 			os.remove("{0}_h2_{1}_cwnd_new".format(algorithm, delay))
 		print("Creating the files for IPERF to plot the CWND graph")
-		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{print $4, int($11)/(1500)}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
-		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{print $4+40, int($11)/(1500)}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print $4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print $4, int($11*1000000)/(1500); else print($11)/(1500);}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print 40+$4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print 40+$4, int($11*1000000)/(1500); else print 40+$4, ($11)/(1500);}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
 	else:
 		if (path.exists("{0}_h3_{1}_fair_new".format(algorithm, delay))):
@@ -272,13 +272,11 @@ if __name__ == '__main__':
 	
 	#run_tests()
 	
-	#for x in algorithm:
-		#for y in delay:
-			#print("CWND for {0} {1}".format(x, y))
-			#run_tcp_tests_cwnd(x, y)
-			#print("TCP Fairness for {0} {1}".format(x, y))
-			#run_tcp_tests_fairness(x, y)
-	print("CWND for {0} {1}".format(algorithm[0], delay[0]))
-	run_tcp_tests_cwnd(algorithm[0], delay[0])
+	for x in algorithm:
+		for y in delay:
+			print("CWND for {0} {1}".format(x, y))
+			run_tcp_tests_cwnd(x, y)
+			print("TCP Fairness for {0} {1}".format(x, y))
+			run_tcp_tests_fairness(x, y)
 	
 
