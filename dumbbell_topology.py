@@ -263,12 +263,10 @@ if __name__ == '__main__':
 	
 	#run_tests()
 	
-	#for x in algorithm:
-		#for y in delay:
-			#print("CWND for {0} {1}".format(x, y))
-			#run_tcp_tests_cwnd(x, y)
-			#print("TCP Fairness for {0} {1}".format(x, y))
-			#run_tcp_tests_fairness(x, y)
-	print("CWND for {0} {1}".format(algorithm[0], delay[0]))
-	run_tcp_tests_cwnd(algorithm[0], delay[0])
+	for x in algorithm:
+		for y in delay:
+			print("CWND for {0} {1}".format(x, y))
+			run_tcp_tests_cwnd(x, y)
+			print("TCP Fairness for {0} {1}".format(x, y))
+			run_tcp_tests_fairness(x, y)
 
