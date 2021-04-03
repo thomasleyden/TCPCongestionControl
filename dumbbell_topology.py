@@ -90,21 +90,40 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	if (path.exists('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
 		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
 	
+	#Edit h1 runtime to change runtime of script
+	h1_runtime = 100
+	#Don't need to ever edit stagger_delay or h2_runtime
+	stagger_delay = h1_runtime/2
+	h2_runtime = h1_runtime - stagger_delay
+	
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -1 > test2', shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -1 > test1', shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 1000 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > cwnd_{3}_h1_{4}.txt'.format(h3.IP(), h1_runtime, algorithm, algorithm, delay), shell=True)
 
-	print("Waiting for clients to finish...")
+	print("Waiting to stagger h1 start")
+	for i in range(0, stagger_delay):
+		time.sleep(1)
+		if i % 20 == 0:
+			print("Sleep")
 
-	time.sleep(1000)
+	print("Starting iperf client h2")
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > cwnd_{3}_h2_{4}.txt'.format(h4.IP(), h2_runtime, algorithm, algorithm, delay), shell=True)
+
+	print("Waiting for iperf to finish")
+	for i in range(0, h1_runtime - stagger_delay):
+		time.sleep(1)
+		if i % 20 == 0:
+			print("Sleep")
+
 	popens[h1].terminate()
+	popens[h2].terminate()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -114,26 +133,30 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	print("Processing data")
 	#gather_data(algorithm, delay, True)
 	#plot_iperf(algorithm, delay, True)
+
+def clean_environment():
+	print("Cleaning mininet")
+	clean1 = subprocess.Popen("sudo mn -c", shell=True)
+	clean1.wait()
+	print("Cleaning Iperf")
+	clean2 = subprocess.Popen("sudo pkill -9 iperf", shell=True)
+	clean2.wait()
 	
 if __name__ == '__main__':
 	delay = [21, 81, 162]
-	algorithm = ['cubic', 'reno' 'westwood', 'vegas']
+	algorithm = ['cubic', 'reno', 'westwood', 'vegas']
 
 	delay = [21]
-	algorithm = ['reno']
+	algorithm = ['cubic']
 	
 	setLogLevel('info')
 	
-	print("Cleaning mininet")
-	p3 = subprocess.Popen("sudo mn -c", shell=True)
-	p3.communicate()
+	clean_environment()
 	
 	for x in algorithm:
 		for y in delay:
+			clean_environment()
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
-			print("Cleaning mininet")
-			p1 = subprocess.Popen("sudo mn -c", shell=True)
-			p1.communicate()
 	
 
