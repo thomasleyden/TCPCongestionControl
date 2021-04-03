@@ -85,10 +85,10 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
 	print('Host addresses: {0}'.format(host_addr))
 	
-	if (path.exists('cwnd_{0}_{1}_{2}'.format(algorithm, h1, delay))):
-		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h1, delay))
-	if (path.exists('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
-		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
+	if (path.exists('results/cwnd_{0}_{1}_{2}'.format(algorithm, h1, delay))):
+		os.remove('results/cwnd_{0}_{1}_{2}'.format(algorithm, h1, delay))
+	if (path.exists('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
+		os.remove('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
 	
 	h1_runtime = 100
 	stagger_delay = 50
@@ -145,7 +145,6 @@ def clean_environment():
 if __name__ == '__main__':
 	delay = [21, 81, 162]
 	algorithm = ['cubic', 'reno', 'westwood', 'vegas']
-
 	delay = [21]
 	
 	setLogLevel('info')
