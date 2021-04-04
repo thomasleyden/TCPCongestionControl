@@ -35,8 +35,9 @@ class Dumbbell_Topology(Topo):
 		"""
 		# Bandwidth is in Mbps, delay is in ms, and max queue size is in packets
 		# Connect Backbone Router 1 to Backbone Router 2
+		#self.addLink(s1, s2, bw=984, delay='{0}ms'.format(delay), loss=.001)
 		self.addLink(s1, s2, bw=984, delay='{0}ms'.format(delay))
-		
+
 		"""
 		The access routers can transmit/receive at 252Mbps (21p/ms).
 		Bandwidth of 252Mbps and a delay of 0ms.
@@ -111,11 +112,11 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
 	net.start()
+
+	#CLI(net)
 	
 	print("Dumping host connections")
 	dumpNodeConnections(net.hosts)
-	
-	#CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -139,7 +140,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 -w 32M > results/cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
 	
 	print('{0} delay for client h2'.format(stagger_time))
 	for i in range(stagger_time,0,-1):
@@ -148,7 +149,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 			print("sleep")
 
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 -w 32M > results/cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
 
 	print('{0} delay for client h2'.format(h2_timeout))
 	for i in range(h2_timeout,0,-1):
@@ -288,10 +289,10 @@ def clean_topology():
 
 
 if __name__ == '__main__':
-	delay = [21, 81, 162]
+	#delay = [21, 81, 162]
+	#algorithm = []
+	delay = [162]
 	algorithm = ['reno', 'westwood', 'vegas']
-	#delay = [21]
-    #algorithm = ['cubic']
 
 	setLogLevel('info')
 	
@@ -305,6 +306,6 @@ if __name__ == '__main__':
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
 			clean_topology()
-			print("TCP Fairness for {0} {1}".format(x, y))
-			run_tcp_tests_fairness(x, y)
-			clean_topology()
+			#print("TCP Fairness for {0} {1}".format(x, y))
+			#run_tcp_tests_fairness(x, y)
+			#clean_topology()
