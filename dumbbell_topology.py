@@ -90,45 +90,38 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	if (path.exists('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
 		os.remove('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
 	
-	h1_runtime = 500
-	stagger_delay = 100
-	h2_runtime = 400
+	h1_runtime = 100
+	stagger_delay = 50
+	h2_runtime = 50
 	
+	# run iperf
 	popens = dict()
-	#Run iperf on h3 and h4 in server mode
 	print('Starting iperf server h3')
 	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
 	print('Starting iperf server h4')
 	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
 	time.sleep(5)
 	
-	#Run iperf on H1 in client mode
 	print('Starting iperf client h1')
 	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_h1_{4}.txt'.format(h3.IP(), h1_runtime, algorithm, algorithm, delay), shell=True)
 
-	#Delay stagger_delay time
 	print("Waiting to stagger h1 start")
 	for i in range(0, stagger_delay):
 		time.sleep(1)
 		if i % 20 == 0:
 			print("Sleep")
 
-	#Run iperf on H2 in client mode
 	print("Starting iperf client h2")
 	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_h2_{4}.txt'.format(h4.IP(), h2_runtime, algorithm, algorithm, delay), shell=True)
 
-	#Wait for for H2 iperc to finish
 	print("Waiting for iperf to finish")
-	for i in range(0, h2_runtime + 60):
+	for i in range(0, h2_runtime):
 		time.sleep(1)
 		if i % 20 == 0:
 			print("Sleep")
 
-	#Explicitly wait for h2 and then h1
-	popens[h2].wait()
-	popens[h1].wait()
+	time.sleep(5)
 
-	#Done with client iperf. Terminate everything
 	popens[h1].terminate()
 	popens[h2].terminate()
 	popens[h3].terminate()
