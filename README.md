@@ -8,7 +8,6 @@ Algorithms:
   * Vegas
 
 Make sure to install the following packages before running: 
-`sudo apt-get install python`
 `sudo apt-get install gnuplot`
 `sudo apt-get install iperf3`
 
