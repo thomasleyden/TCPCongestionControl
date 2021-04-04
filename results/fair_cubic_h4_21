@@ -1,0 +1,21 @@
+-----------------------------------------------------------
+Server listening on 5566
+-----------------------------------------------------------
+Accepted connection from 10.0.0.2, port 36220
+[ 25] local 10.0.0.4 port 5566 connected to 10.0.0.2 port 36224
+[ ID] Interval           Transfer     Bandwidth
+[ 25]   0.00-1.00   sec   928 MBytes  7.77 Gbits/sec                  
+[ 25]   1.00-2.00   sec   970 MBytes  8.14 Gbits/sec                  
+[ 25]   2.00-3.00   sec   944 MBytes  7.92 Gbits/sec                  
+[ 25]   3.00-4.00   sec   953 MBytes  8.00 Gbits/sec                  
+[ 25]   4.00-5.00   sec   895 MBytes  7.51 Gbits/sec                  
+[ 25]   5.00-6.00   sec   886 MBytes  7.43 Gbits/sec                  
+[ 25]   6.00-7.00   sec   938 MBytes  7.87 Gbits/sec                  
+[ 25]   7.00-8.00   sec   941 MBytes  7.90 Gbits/sec                  
+[ 25]   8.00-9.00   sec   934 MBytes  7.83 Gbits/sec                  
+[ 25]   9.00-10.00  sec   919 MBytes  7.72 Gbits/sec                  
+[ 25]  10.00-10.00  sec  4.88 MBytes  11.4 Gbits/sec                  
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bandwidth
+[ 25]   0.00-10.00  sec  0.00 Bytes  0.00 bits/sec                  sender
+[ 25]   0.00-10.00  sec  9.10 GBytes  7.81 Gbits/sec                  receiver
