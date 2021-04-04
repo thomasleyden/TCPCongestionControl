@@ -125,7 +125,11 @@ def run_tcp_tests_cwnd(algorithm, delay):
 		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h1, delay))
 	if (path.exists('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
 		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
-	
+
+        h1_timeout = 500
+        stagger_time = 62
+        h2_timeout = 438
+
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
@@ -135,24 +139,22 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t 200 -C {1} -i 1 > cwnd_{2}_{3}_{4} &'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
-	print('40 delay for client h2')
-	for i in range(40,0,-1):
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
+	
+        print('{0} delay for client h2'.format(stagger_time))
+	for i in range(stagger_time,0,-1):
 		time.sleep(1)
 		print(i)
+
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t 160 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
 
 	print("Waiting for clients to finish...")
 	
-	try:
-		popens[h1].communicate(timeout=200)
-	except subprocess.TimeoutExpired as e:
-		popens[h1].kill()
-	try:
-		popens[h2].communicate(timeout=200)
-	except subprocess.TimeoutExpired as e:
-		popens[h2].kill()
+	popens[h2].wait()
+        popens[h1].wait()
+        popens[h2].terminate()
+        popens[h1].terminate()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -191,20 +193,16 @@ def run_tcp_tests_fairness(algorithm, delay):
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 100 -C {1} &'.format(h3.IP(), algorithm), shell=True)
+	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 500 -C {1} &'.format(h3.IP(), algorithm), shell=True)
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 100 -C {1}'.format(h4.IP(), algorithm), shell=True)
+	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 500 -C {1}'.format(h4.IP(), algorithm), shell=True)
 	
 	print("Waiting for clients to finish...")
 		
-	try:
-		popens[h1].communicate(timeout=100)
-	except subprocess.TimeoutExpired as e:
-		popens[h1].kill()
-	try:
-		popens[h2].communicate(timeout=100)
-	except subprocess.TimeoutExpired as e:
-		popens[h2].kill()
+	popens[h1].wait()
+        popens[h2].wait()
+        popens[h2].terminate()
+        popens[h1].terminate()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -224,8 +222,8 @@ def gather_data(algorithm, delay, cwnd):
 		if (path.exists("{0}_h2_{1}_cwnd_new".format(algorithm, delay))):
 			os.remove("{0}_h2_{1}_cwnd_new".format(algorithm, delay))
 		print("Creating the files for IPERF to plot the CWND graph")
-		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print $4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print $4, int($11*1000000)/(1500); else print($11)/(1500);}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
-		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print 40+$4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print 40+$4, int($11*1000000)/(1500); else print 40+$4, ($11)/(1500);}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -500 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print $4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print $4, int($11*1000000)/(1500); else print($11)/(1500);}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -500 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print 40+$4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print 40+$4, int($11*1000000)/(1500); else print 40+$4, ($11)/(1500);}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
 	else:
 		if (path.exists("{0}_h3_{1}_fair_new".format(algorithm, delay))):
@@ -233,8 +231,8 @@ def gather_data(algorithm, delay, cwnd):
 		if (path.exists("{0}_h4_{1}_fair_new".format(algorithm, delay))):
 			os.remove("{0}_h4_{1}_fair_new".format(algorithm, delay))
 		print("Creating the files for IPERF to plot the TCP fairness graph")
-		subprocess.Popen("cat fair_{0}_h3_{1} | grep sec | head -100 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h3_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
-		subprocess.Popen("cat fair_{0}_h4_{1} | grep sec | head -100 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h4_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat fair_{0}_h3_{1} | grep sec | head -500 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h3_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
+                subpr:ocess.Popen("cat fair_{0}_h4_{1} | grep sec | head -500 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h4_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
 
 
@@ -245,8 +243,8 @@ def plot_iperf(algorithm, delay, cwnd):
 		print("Creating the plots for IPERF for the CWND graph")
 		plot1 = subprocess.Popen(["gnuplot"], stdin=subprocess.PIPE, encoding='utf8')
 		plot1.stdin.write("plot \"{0}_h1_{1}_cwnd_new\" title \"TCP Flow 1\" with linespoints, \"{0}_h2_{1}_cwnd_new\" title \"TCP Flow 2\" with linespoints\n".format(algorithm, delay))
-		plot1.stdin.write("set xrange[1:200]\n")
-		plot1.stdin.write("set xtics 1,20,200\n")
+		plot1.stdin.write("set xrange[1:500]\n")
+		plot1.stdin.write("set xtics 1,50,500\n")
 		plot1.stdin.write("set title \"Change in cwnd (packets) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
 		plot1.stdin.write("set xlabel \"Time (seconds)\"\n")
 		plot1.stdin.write("set ylabel \"Congestion Window (packets)\"\n")
@@ -261,8 +259,8 @@ def plot_iperf(algorithm, delay, cwnd):
 		plot1 = subprocess.Popen(["gnuplot"], stdin=subprocess.PIPE, encoding='utf8')
 		plot1.stdin.write("plot \"{0}_h3_{1}_fair_new\" title \"TCP Flow 1\" with linespoints, \"{0}_h4_{1}_fair_new\" title \"TCP Flow 2\" with linespoints\n".format(algorithm, delay))
 
-		plot1.stdin.write("set xrange[1:100]\n")
-		plot1.stdin.write("set xtics 1,10,100\n")
+		plot1.stdin.write("set xrange[1:500]\n")
+		plot1.stdin.write("set xtics 1,50,500\n")
 		plot1.stdin.write("set title \"Change in Throughput (Mbps) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
 		plot1.stdin.write("set xlabel \"Time (seconds)\"\n")
 		plot1.stdin.write("set ylabel \"Throughput (Mbps)\"\n")
@@ -271,7 +269,14 @@ def plot_iperf(algorithm, delay, cwnd):
 		plot1.stdin.write("replot\n")
 		plot1.stdin.write("exit\n")
 
-	
+def clean_topology():
+    print("Cleaning mininet")
+    clean1 = subprocess.Popen("sudo mn -c", shell=True)
+    clean1.wait()
+    clean2 = subprocess.Popen("sudo pkill -9 iperf", shell=True)
+    clean2.wait()
+
+
 if __name__ == '__main__':
 	delay = [21, 81, 162]
 	algorithm = ['cubic', 'reno' 'westwood', 'vegas']
@@ -281,21 +286,15 @@ if __name__ == '__main__':
 	#for y in delay:
 	#	run_tests(y)
 	
-	print("Cleaning mininet")
-	p3 = subprocess.Popen("sudo mn -c", shell=True)
-	p3.communicate()
+	clean_topology()
 	
 	for x in algorithm:
 		for y in delay:
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
-			print("Cleaning mininet")
-			p1 = subprocess.Popen("sudo mn -c", shell=True)
-			p1.communicate()
+			clean_topology()
 			print("TCP Fairness for {0} {1}".format(x, y))
 			run_tcp_tests_fairness(x, y)
-			print("Cleaning mininet")
-			p2 = subprocess.Popen("sudo mn -c", shell=True)
-			p2.communicate()
+			clean_topology()
 	
 
