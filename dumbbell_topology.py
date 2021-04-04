@@ -15,7 +15,7 @@ from os import path
 class Dumbbell_Topology(Topo):
 	# Dumbbell topology for mininet
 
-	def build(self, delay=21):
+	def build(self, delay=2):
 		""" 
 		For all calculations, we assume 12000 bits/packet and 1500-byte packets
 		"""
@@ -70,6 +70,42 @@ class Dumbbell_Topology(Topo):
 		self.addLink(h3, s4, bw=960, delay='0ms')
 		# Connect Receiver 2 to Access Router 2
 		self.addLink(h4, s4, bw=960, delay='0ms')
+
+	
+def run_tests(delay):
+	print("DELAY {0}".format(delay))
+	topo = Dumbbell_Topology(delay)
+	net = Mininet(topo=topo, link=TCLink)
+	net.start()
+	
+	print("Dumping host connections")
+	dumpNodeConnections(net.hosts)
+	
+	print("Testing network connectivity")
+	h1, h3 = net.get('h1', 'h3')
+	h2, h4 = net.get('h2', 'h4')
+	
+	for i in range(1, 10):
+		net.pingFull(hosts=(h1, h3))
+	
+	for i in range(1, 10):
+		net.pingFull(hosts=(h3, h1))
+		
+	for i in range(1, 10):
+		net.pingFull(hosts=(h2, h4))
+	
+	for i in range(1, 10):
+		net.pingFull(hosts=(h4, h2))
+		
+	print("Testing bandwidth between h1 and h3..")
+	net.iperf(hosts=(h1, h3), fmt='m', seconds=10, port=5001)
+	
+	print("Testing bandwidth between h2 and h4")
+	net.iperf(hosts=(h2, h4), fmt='m', seconds=10, port=5001)
+	
+	print("Stopping test...")
+	net.stop()
+
 	
 def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
@@ -79,7 +115,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	print("Dumping host connections")
 	dumpNodeConnections(net.hosts)
 	
-	#CLI(net)
+	CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -90,40 +126,33 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	if (path.exists('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
 		os.remove('cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
 	
-	h1_runtime = 100
-	stagger_delay = 50
-	h2_runtime = 50
-	
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -1 &', shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -1 &', shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_h1_{4}.txt'.format(h3.IP(), h1_runtime, algorithm, algorithm, delay), shell=True)
-
-	print("Waiting to stagger h1 start")
-	for i in range(0, stagger_delay):
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t 200 -C {1} -i 1 > cwnd_{2}_{3}_{4} &'.format(h3.IP(), algorithm, algorithm, h1, delay), shell=True)
+	print('40 delay for client h2')
+	for i in range(40,0,-1):
 		time.sleep(1)
-		if i % 20 == 0:
-			print("Sleep")
+		print(i)
+	print('Starting iperf client h2')
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t 160 -C {1} -i 1 > cwnd_{2}_{3}_{4}'.format(h4.IP(), algorithm, algorithm, h2, delay), shell=True)
 
-	print("Starting iperf client h2")
-	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_h2_{4}.txt'.format(h4.IP(), h2_runtime, algorithm, algorithm, delay), shell=True)
-
-	print("Waiting for iperf to finish")
-	for i in range(0, h2_runtime):
-		time.sleep(1)
-		if i % 20 == 0:
-			print("Sleep")
-
-	time.sleep(5)
-
-	popens[h1].terminate()
-	popens[h2].terminate()
+	print("Waiting for clients to finish...")
+	
+	try:
+		popens[h1].communicate(timeout=200)
+	except subprocess.TimeoutExpired as e:
+		popens[h1].kill()
+	try:
+		popens[h2].communicate(timeout=200)
+	except subprocess.TimeoutExpired as e:
+		popens[h2].kill()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -131,31 +160,142 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	net.stop()
 	
 	print("Processing data")
-	#gather_data(algorithm, delay, True)
-	#plot_iperf(algorithm, delay, True)
+	gather_data(algorithm, delay, True)
+	plot_iperf(algorithm, delay, True)
 
-def clean_environment():
-	print("Cleaning mininet")
-	clean1 = subprocess.Popen("sudo mn -c", shell=True)
-	clean1.wait()
-	print("Cleaning Iperf")
-	clean2 = subprocess.Popen("sudo pkill -9 iperf", shell=True)
-	clean2.wait()
+
+def run_tcp_tests_fairness(algorithm, delay):
+	topo = Dumbbell_Topology(delay)
+	net = Mininet(topo=topo)
+	net.start()
+	
+	print("Dumping host connections")
+	dumpNodeConnections(net.hosts)
+	CLI(net)
+	
+	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
+	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
+	print('Host addresses: {0}'.format(host_addr))
+	
+	if (path.exists('fair_{0}_{1}_{2}'.format(algorithm, h3, delay))):
+		os.remove('fair_{0}_{1}_{2}'.format(algorithm, h3, delay))
+	if (path.exists('fair_{0}_{1}_{2}'.format(algorithm, h4, delay))):
+		os.remove('fair_{0}_{1}_{2}'.format(algorithm, h4, delay))
+	
+	# run iperf
+	popens = dict()
+	print('Starting iperf server h3')
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2} &'.format(algorithm, h3, delay), shell=True)
+	print('Starting iperf server h4')
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > fair_{0}_{1}_{2} &'.format(algorithm, h4, delay), shell=True)
+	time.sleep(5)
+	
+	print('Starting iperf client h1')
+	popens[h1] = h1.popen('iperf3 -c {0} -p 5566 -t 100 -C {1} &'.format(h3.IP(), algorithm), shell=True)
+	print('Starting iperf client h2')
+	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t 100 -C {1}'.format(h4.IP(), algorithm), shell=True)
+	
+	print("Waiting for clients to finish...")
+		
+	try:
+		popens[h1].communicate(timeout=100)
+	except subprocess.TimeoutExpired as e:
+		popens[h1].kill()
+	try:
+		popens[h2].communicate(timeout=100)
+	except subprocess.TimeoutExpired as e:
+		popens[h2].kill()
+	popens[h3].terminate()
+	popens[h4].terminate()
+	
+	print("Stopping test")
+	net.stop()
+	
+	print("Processing data")
+	gather_data(algorithm, delay, False)
+	plot_iperf(algorithm, delay, False)
+	
+
+def gather_data(algorithm, delay, cwnd):
+	
+	if cwnd == True:
+		if (path.exists("{0}_h1_{1}_cwnd_new".format(algorithm, delay))):
+			os.remove("{0}_h1_{1}_cwnd_new".format(algorithm, delay))
+		if (path.exists("{0}_h2_{1}_cwnd_new".format(algorithm, delay))):
+			os.remove("{0}_h2_{1}_cwnd_new".format(algorithm, delay))
+		print("Creating the files for IPERF to plot the CWND graph")
+		subprocess.Popen("cat cwnd_{0}_h1_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print $4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print $4, int($11*1000000)/(1500); else print($11)/(1500);}}'> {2}_h1_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat cwnd_{0}_h2_{1} | grep sec | head -200 | tr - \" \" | awk '{{if ($12 == \"KBytes\")print 40+$4, int($11*1000)/(1500); else if ($12 == \"MBytes\")print 40+$4, int($11*1000000)/(1500); else print 40+$4, ($11)/(1500);}}' > {2}_h2_{3}_cwnd_new".format(algorithm,delay,algorithm,delay), shell=True)
+		print("Done") 
+	else:
+		if (path.exists("{0}_h3_{1}_fair_new".format(algorithm, delay))):
+			os.remove("{0}_h3_{1}_fair_new".format(algorithm, delay))
+		if (path.exists("{0}_h4_{1}_fair_new".format(algorithm, delay))):
+			os.remove("{0}_h4_{1}_fair_new".format(algorithm, delay))
+		print("Creating the files for IPERF to plot the TCP fairness graph")
+		subprocess.Popen("cat fair_{0}_h3_{1} | grep sec | head -100 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h3_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
+		subprocess.Popen("cat fair_{0}_h4_{1} | grep sec | head -100 | tr - \" \" | awk '{{print $4, $8}}' > {2}_h4_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
+		print("Done") 
+
+
+def plot_iperf(algorithm, delay, cwnd):
+	if cwnd == True:		
+		if (path.exists("{0}_{1}_cwnd.png".format(algorithm, delay))):
+			os.remove("{0}_{1}_cwnd.png".format(algorithm, delay))
+		print("Creating the plots for IPERF for the CWND graph")
+		plot1 = subprocess.Popen(["gnuplot"], stdin=subprocess.PIPE, encoding='utf8')
+		plot1.stdin.write("plot \"{0}_h1_{1}_cwnd_new\" title \"TCP Flow 1\" with linespoints, \"{0}_h2_{1}_cwnd_new\" title \"TCP Flow 2\" with linespoints\n".format(algorithm, delay))
+		plot1.stdin.write("set xrange[1:200]\n")
+		plot1.stdin.write("set xtics 1,20,200\n")
+		plot1.stdin.write("set title \"Change in cwnd (packets) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
+		plot1.stdin.write("set xlabel \"Time (seconds)\"\n")
+		plot1.stdin.write("set ylabel \"Congestion Window (packets)\"\n")
+		plot1.stdin.write("set terminal png\n")
+		plot1.stdin.write("set output \"{0}_{1}_cwnd.png\"\n".format(algorithm, delay))
+		plot1.stdin.write("replot\n")
+		plot1.stdin.write("exit\n")
+	else:
+		if (path.exists("{0}_{1}_fair.png".format(algorithm, delay))):
+			os.remove("{0}_{1}_fair.png".format(algorithm, delay))
+		print("Creating the plots for IPERF for the TCP fairness graph")
+		plot1 = subprocess.Popen(["gnuplot"], stdin=subprocess.PIPE, encoding='utf8')
+		plot1.stdin.write("plot \"{0}_h3_{1}_fair_new\" title \"TCP Flow 1\" with linespoints, \"{0}_h4_{1}_fair_new\" title \"TCP Flow 2\" with linespoints\n".format(algorithm, delay))
+
+		plot1.stdin.write("set xrange[1:100]\n")
+		plot1.stdin.write("set xtics 1,10,100\n")
+		plot1.stdin.write("set title \"Change in Throughput (Mbps) vs Time (1s units) for two TCP flows (rtt = {0} ms) using {1}\"\n".format(delay*2, algorithm.upper()))
+		plot1.stdin.write("set xlabel \"Time (seconds)\"\n")
+		plot1.stdin.write("set ylabel \"Throughput (Mbps)\"\n")
+		plot1.stdin.write("set terminal png\n")
+		plot1.stdin.write("set output \"{0}_{1}_fair.png\"\n".format(algorithm, delay))
+		plot1.stdin.write("replot\n")
+		plot1.stdin.write("exit\n")
+
 	
 if __name__ == '__main__':
 	delay = [21, 81, 162]
-	algorithm = ['cubic', 'reno', 'westwood', 'vegas']
-
-	delay = [21]
+	algorithm = ['cubic', 'reno' 'westwood', 'vegas']
 	
 	setLogLevel('info')
 	
-	clean_environment()
+	#for y in delay:
+	#	run_tests(y)
+	
+	print("Cleaning mininet")
+	p3 = subprocess.Popen("sudo mn -c", shell=True)
+	p3.communicate()
 	
 	for x in algorithm:
 		for y in delay:
-			clean_environment()
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
+			print("Cleaning mininet")
+			p1 = subprocess.Popen("sudo mn -c", shell=True)
+			p1.communicate()
+			print("TCP Fairness for {0} {1}".format(x, y))
+			run_tcp_tests_fairness(x, y)
+			print("Cleaning mininet")
+			p2 = subprocess.Popen("sudo mn -c", shell=True)
+			p2.communicate()
 	
 
