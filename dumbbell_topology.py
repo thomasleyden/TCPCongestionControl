@@ -126,9 +126,9 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	if (path.exists('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))):
 		os.remove('results/cwnd_{0}_{1}_{2}'.format(algorithm, h2, delay))
 
-        h1_timeout = 500
-        stagger_time = 62
-        h2_timeout = 438
+	h1_timeout = 500
+	stagger_time = 62
+	h2_timeout = 438
 
 	# run iperf
 	popens = dict()
@@ -141,18 +141,24 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	print('Starting iperf client h1')
 	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
 	
-        print('{0} delay for client h2'.format(stagger_time))
+	print('{0} delay for client h2'.format(stagger_time))
 	for i in range(stagger_time,0,-1):
 		time.sleep(1)
-		print(i)
+		if i % 20 == 0:
+			print("sleep")
 
 	print('Starting iperf client h2')
 	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
 
-	print("Waiting for clients to finish...")
-	
+	print('{0} delay for client h2'.format(h2_timeout))
+	for i in range(h2_timeout,0,-1):
+		time.sleep(1)
+		if i % 20 == 0:
+			print("sleep")
+	print('Attempting to communicate to client iperfs')
+
 	popens[h2].communicate()
-        popens[h1].communicate()
+	popens[h1].communicate()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -182,7 +188,7 @@ def run_tcp_tests_fairness(algorithm, delay):
 	if (path.exists('results/fair_{0}_{1}_{2}'.format(algorithm, h4, delay))):
 		os.remove('results/fair_{0}_{1}_{2}'.format(algorithm, h4, delay))
 	
-        h1_timeout = 500
+	h1_timeout = 500
 
 	# run iperf
 	popens = dict()
@@ -198,9 +204,13 @@ def run_tcp_tests_fairness(algorithm, delay):
 	popens[h2] = h2.popen('iperf3 -c {0} -p 5566 -t {1} -C {2}'.format(h4.IP(), h1_timeout, algorithm), shell=True)
 	
 	print("Waiting for clients to finish...")
+	for i in range(h1_timeout,0,-1):
+		time.sleep(1)
+		if i % 20 == 0:
+			print("sleep")
 		
 	popens[h1].communicate()
-        popens[h2].communicate()
+	popens[h2].communicate()
 	popens[h3].terminate()
 	popens[h4].terminate()
 	
@@ -278,10 +288,10 @@ def clean_topology():
 
 
 if __name__ == '__main__':
-	#delay = [21, 81, 162]
-	#algorithm = ['cubic', 'reno' 'westwood', 'vegas']
-	delay = [21]
-        algorithm = ['cubic']
+	delay = [21, 81, 162]
+	algorithm = ['reno', 'westwood', 'vegas']
+	#delay = [21]
+    #algorithm = ['cubic']
 
 	setLogLevel('info')
 	
@@ -297,3 +307,4 @@ if __name__ == '__main__':
 			clean_topology()
 			print("TCP Fairness for {0} {1}".format(x, y))
 			run_tcp_tests_fairness(x, y)
+			clean_topology()
