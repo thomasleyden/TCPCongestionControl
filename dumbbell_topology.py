@@ -35,8 +35,9 @@ class Dumbbell_Topology(Topo):
 		"""
 		# Bandwidth is in Mbps, delay is in ms, and max queue size is in packets
 		# Connect Backbone Router 1 to Backbone Router 2
+		#self.addLink(s1, s2, bw=984, delay='{0}ms'.format(delay), loss=.001)
 		self.addLink(s1, s2, bw=984, delay='{0}ms'.format(delay))
-		
+
 		"""
 		The access routers can transmit/receive at 252Mbps (21p/ms).
 		Bandwidth of 252Mbps and a delay of 0ms.
@@ -70,7 +71,6 @@ class Dumbbell_Topology(Topo):
 		self.addLink(h3, s4, bw=960, delay='0ms')
 		# Connect Receiver 2 to Access Router 2
 		self.addLink(h4, s4, bw=960, delay='0ms')
-
 	
 def run_tests(delay):
 	print("DELAY {0}".format(delay))
@@ -106,16 +106,15 @@ def run_tests(delay):
 	print("Stopping test...")
 	net.stop()
 
-	
 def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
 	net.start()
+
+	#CLI(net)
 	
 	print("Dumping host connections")
 	dumpNodeConnections(net.hosts)
-	
-	#CLI(net)
 	
 	h1, h2, h3, h4 = net.getNodeByName('h1', 'h2', 'h3', 'h4')
 	host_addr = dict({'h1': h1.IP(), 'h2': h2.IP(), 'h3': h3.IP(), 'h4': h4.IP()})
@@ -133,13 +132,13 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -1 &', shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -1 &', shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
-	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
+	popens[h1] = h1.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 -w 32M > results/cwnd_{3}_{4}_{5} &'.format(h3.IP(), h1_timeout, algorithm, algorithm, h1, delay), shell=True)
 	
 	print('{0} delay for client h2'.format(stagger_time))
 	for i in range(stagger_time,0,-1):
@@ -148,7 +147,7 @@ def run_tcp_tests_cwnd(algorithm, delay):
 			print("sleep")
 
 	print('Starting iperf client h2')
-	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 > results/cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
+	popens[h2] = h2.popen('nohup iperf3 -c {0} -p 5566 -t {1} -C {2} -i 1 -w 32M > results/cwnd_{3}_{4}_{5}'.format(h4.IP(), h2_timeout, algorithm, algorithm, h2, delay), shell=True)
 
 	print('{0} delay for client h2'.format(h2_timeout))
 	for i in range(h2_timeout,0,-1):
@@ -168,7 +167,6 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	print("Processing data")
 	gather_data(algorithm, delay, True, stagger_time)
 	plot_iperf(algorithm, delay, True, h1_timeout)
-
 
 def run_tcp_tests_fairness(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
@@ -193,9 +191,9 @@ def run_tcp_tests_fairness(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2} &'.format(algorithm, h3, delay), shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2}'.format(algorithm, h3, delay), shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2} &'.format(algorithm, h4, delay), shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2}'.format(algorithm, h4, delay), shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
@@ -221,7 +219,6 @@ def run_tcp_tests_fairness(algorithm, delay):
 	gather_data(algorithm, delay, False, h1_timeout)
 	plot_iperf(algorithm, delay, False, h1_timeout)
 	
-
 def gather_data(algorithm, delay, cwnd, timeout2):
 	
 	if cwnd == True:
@@ -242,7 +239,6 @@ def gather_data(algorithm, delay, cwnd, timeout2):
 		subprocess.Popen("cat results/fair_{0}_h3_{1} | grep sec | head -n -2 | tr - \" \" | awk '{{print $4, $8}}' > results/{2}_h3_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
                 subprocess.Popen("cat results/fair_{0}_h4_{1} | grep sec | head -n -2 | tr - \" \" | awk '{{print $4, $8}}' > results/{2}_h4_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
-
 
 def plot_iperf(algorithm, delay, cwnd, timeout):
 	if cwnd == True:		
@@ -286,25 +282,17 @@ def clean_topology():
     clean2 = subprocess.Popen("sudo pkill -9 iperf", shell=True)
     clean2.communicate()
 
-
 if __name__ == '__main__':
 	delay = [21, 81, 162]
-	algorithm = ['reno', 'westwood', 'vegas']
-	#delay = [21]
-    #algorithm = ['cubic']
+	algorithm = ['cubic', 'reno', 'westwood', 'htcp']
 
 	setLogLevel('info')
 	
-	#for y in delay:
-	#	run_tests(y)
-	
-	clean_topology()
-	
 	for x in algorithm:
 		for y in delay:
+			clean_topology()
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
 			clean_topology()
 			print("TCP Fairness for {0} {1}".format(x, y))
 			run_tcp_tests_fairness(x, y)
-			clean_topology()
