@@ -16,3 +16,6 @@ Run the following before running any tests to ensure no other processes are runn
 
 To run all tests together:
 `sudo python dumbbell_topology.py`
+
+/sbin/sysctl net.ipv4.tcp_available_congestion_control
+sudo /sbin/modprobe tcp_htcp

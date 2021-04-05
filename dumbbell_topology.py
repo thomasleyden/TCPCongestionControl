@@ -289,10 +289,9 @@ def clean_topology():
 
 
 if __name__ == '__main__':
-	#delay = [21, 81, 162]
+	delay = [21, 81, 162]
 	#algorithm = []
-	delay = [162]
-	algorithm = ['reno', 'westwood', 'vegas']
+	algorithm = ['htcp']
 
 	setLogLevel('info')
 	
@@ -306,6 +305,6 @@ if __name__ == '__main__':
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
 			clean_topology()
-			#print("TCP Fairness for {0} {1}".format(x, y))
-			#run_tcp_tests_fairness(x, y)
-			#clean_topology()
+			print("TCP Fairness for {0} {1}".format(x, y))
+			run_tcp_tests_fairness(x, y)
+			clean_topology()
