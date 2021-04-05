@@ -71,7 +71,6 @@ class Dumbbell_Topology(Topo):
 		self.addLink(h3, s4, bw=960, delay='0ms')
 		# Connect Receiver 2 to Access Router 2
 		self.addLink(h4, s4, bw=960, delay='0ms')
-
 	
 def run_tests(delay):
 	print("DELAY {0}".format(delay))
@@ -107,7 +106,6 @@ def run_tests(delay):
 	print("Stopping test...")
 	net.stop()
 
-	
 def run_tcp_tests_cwnd(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo, link=TCLink)
@@ -170,7 +168,6 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	gather_data(algorithm, delay, True, stagger_time)
 	plot_iperf(algorithm, delay, True, h1_timeout)
 
-
 def run_tcp_tests_fairness(algorithm, delay):
 	topo = Dumbbell_Topology(delay)
 	net = Mininet(topo=topo)
@@ -222,7 +219,6 @@ def run_tcp_tests_fairness(algorithm, delay):
 	gather_data(algorithm, delay, False, h1_timeout)
 	plot_iperf(algorithm, delay, False, h1_timeout)
 	
-
 def gather_data(algorithm, delay, cwnd, timeout2):
 	
 	if cwnd == True:
@@ -243,7 +239,6 @@ def gather_data(algorithm, delay, cwnd, timeout2):
 		subprocess.Popen("cat results/fair_{0}_h3_{1} | grep sec | head -n -2 | tr - \" \" | awk '{{print $4, $8}}' > results/{2}_h3_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
                 subprocess.Popen("cat results/fair_{0}_h4_{1} | grep sec | head -n -2 | tr - \" \" | awk '{{print $4, $8}}' > results/{2}_h4_{3}_fair_new".format(algorithm,delay,algorithm,delay), shell=True)
 		print("Done") 
-
 
 def plot_iperf(algorithm, delay, cwnd, timeout):
 	if cwnd == True:		
@@ -286,7 +281,6 @@ def clean_topology():
     clean1.communicate()
     clean2 = subprocess.Popen("sudo pkill -9 iperf", shell=True)
     clean2.communicate()
-
 
 if __name__ == '__main__':
 	delay = [21, 81, 162]
