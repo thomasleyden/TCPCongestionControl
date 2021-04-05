@@ -134,9 +134,9 @@ def run_tcp_tests_cwnd(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -1 &', shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -1', shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -1 &', shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -1', shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
@@ -194,9 +194,9 @@ def run_tcp_tests_fairness(algorithm, delay):
 	# run iperf
 	popens = dict()
 	print('Starting iperf server h3')
-	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2} &'.format(algorithm, h3, delay), shell=True)
+	popens[h3] = h3.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2}'.format(algorithm, h3, delay), shell=True)
 	print('Starting iperf server h4')
-	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2} &'.format(algorithm, h4, delay), shell=True)
+	popens[h4] = h4.popen('iperf3 -s -p 5566 -i 1 -1 > results/fair_{0}_{1}_{2}'.format(algorithm, h4, delay), shell=True)
 	time.sleep(5)
 	
 	print('Starting iperf client h1')
@@ -290,21 +290,15 @@ def clean_topology():
 
 if __name__ == '__main__':
 	delay = [21, 81, 162]
-	#algorithm = []
-	algorithm = ['htcp']
+	algorithm = ['cubic', 'reno', 'westwood', 'htcp']
 
 	setLogLevel('info')
 	
-	#for y in delay:
-	#	run_tests(y)
-	
-	clean_topology()
-	
 	for x in algorithm:
 		for y in delay:
+			clean_topology()
 			print("CWND for {0} {1}".format(x, y))
 			run_tcp_tests_cwnd(x, y)
 			clean_topology()
 			print("TCP Fairness for {0} {1}".format(x, y))
 			run_tcp_tests_fairness(x, y)
-			clean_topology()

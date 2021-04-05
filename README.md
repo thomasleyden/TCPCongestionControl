@@ -17,5 +17,10 @@ Run the following before running any tests to ensure no other processes are runn
 To run all tests together:
 `sudo python dumbbell_topology.py`
 
-/sbin/sysctl net.ipv4.tcp_available_congestion_control
-sudo /sbin/modprobe tcp_htcp
+# Additional Info
+If you are missing certain TCP congestion control algorithms. You may help the following commands helpfull
+`/sbin/sysctl net.ipv4.tcp_available_congestion_control`
+`sudo /sbin/modprobe tcp_htcp`
+Check your max congestion window size
+`sudo sysctl -a | grep net.core.wmem_max`
+
